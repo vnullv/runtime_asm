@@ -15,8 +15,8 @@
 static void *
 _map_file(char const *path, int prot, size_t *fsz)
 {
-	int	    fd;
-	void	   *ret;
+	int         fd;
+	void       *ret;
 	struct stat stat;
 
 	ret = NULL;
@@ -49,9 +49,9 @@ static uint8_t *
 _assemble_instrs(char const *instrs, size_t *nb)
 {
 	ks_engine *ks;
-	ks_err	   err;
-	size_t	   cnt;
-	uint8_t	  *encode, *ret;
+	ks_err     err;
+	size_t     cnt;
+	uint8_t   *encode, *ret;
 
 	ret = NULL;
 
@@ -124,13 +124,13 @@ typedef long int (*asm_fn_t)(void);
 int
 main(void)
 {
-	void	*mapped_file;
+	void    *mapped_file;
 	uint8_t *asmb;
-	size_t	 fsz, asmnb;
-	int	 rc;
+	size_t   fsz, asmnb;
+	int      rc;
 	asm_fn_t fn;
 
-	rc	    = EXIT_FAILURE;
+	rc          = EXIT_FAILURE;
 	mapped_file = _map_file("asm.s", PROT_READ, &fsz);
 	if (!mapped_file)
 		goto cleanup;
