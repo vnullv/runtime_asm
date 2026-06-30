@@ -49,6 +49,7 @@ _read_file(char const *path, size_t *fsz)
 				continue;
 
 			free(ret);
+			ret = NULL;
 			goto close_file;
 		}
 	}
