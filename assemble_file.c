@@ -142,6 +142,8 @@ _build_asm_fn(uint8_t const *asmb, size_t nb)
 		goto unmap_func;
 	}
 
+	/* This is typically not necessary on x86. However, it simply serves a conceptual purpose
+	 * here. */
 	__builtin___clear_cache(ret, (char *)ret + nb);
 
 	goto cleanup;
@@ -178,7 +180,7 @@ main(void)
 	instrs[fsz] = '\0';
 
 	asmb = _assemble_instrs(instrs, &asmnb);
-	if (!asmb)
+	if (!asmb || !asmnb)
 		goto free_instrs;
 
 	fn = _build_asm_fn(asmb, asmnb);
