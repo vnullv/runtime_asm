@@ -18,7 +18,6 @@
 #elif defined(i386) || defined(__i386__)
 	#define MACHINE_ARCH KS_ARCH_X86
 	#define MACHINE_MODE KS_MODE_32
-/* Add ARM support ? */
 #else
 	#error architecture not supported
 #endif
