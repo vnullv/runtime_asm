@@ -12,6 +12,20 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#if defined(__x86_64__)
+	#define MACHINE_ARCH KS_ARCH_X86
+	#define MACHINE_MODE KS_MODE_64
+#elif defined(i386) || defined(__i386__)
+	#define MACHINE_ARCH KS_ARCH_X86
+	#define MACHINE_MODE KS_MODE_32
+/* Add ARM support ? */
+#else
+	#error architecture not supported
+#endif
+
+/* Use AT&T syntax by default */
+#define ASM_SYNTAX KS_OPT_SYNTAX_ATT
+
 /* Caller should free returned string after use. Returns NULL on failure. */
 static char *
 _read_file(char const *path, size_t *fsz)
@@ -19,8 +33,8 @@ _read_file(char const *path, size_t *fsz)
 	int         fd;
 	char       *ret;
 	struct stat st;
-	ssize_t     n;
 	size_t      total;
+	ssize_t     n;
 
 	ret = NULL;
 
@@ -74,12 +88,12 @@ _assemble_instrs(char const *instrs, size_t *nb)
 
 	ret = NULL;
 
-	if ((err = ks_open(KS_ARCH_X86, KS_MODE_64, &ks)) != KS_ERR_OK) {
+	if ((err = ks_open(MACHINE_ARCH, MACHINE_MODE, &ks)) != KS_ERR_OK) {
 		fprintf(stderr, "_assemble_instrs(): ks_open(): %s\n", ks_strerror(err));
 		goto cleanup;
 	}
 
-	if (ks_option(ks, KS_OPT_SYNTAX, KS_OPT_SYNTAX_ATT) != KS_ERR_OK) {
+	if (ks_option(ks, KS_OPT_SYNTAX, ASM_SYNTAX) != KS_ERR_OK) {
 		err = ks_errno(ks);
 		fprintf(stderr, "_assemble_instrs(): ks_option(): %s\n", ks_strerror(err));
 		goto close_ks;
@@ -128,6 +142,8 @@ _build_asm_fn(uint8_t const *asmb, size_t nb)
 		perror("_build_asm_fn(): mprotect()");
 		goto unmap_func;
 	}
+
+	__builtin___clear_cache(ret, (char *)ret + nb);
 
 	goto cleanup;
 
