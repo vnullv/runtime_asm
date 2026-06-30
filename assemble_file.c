@@ -145,8 +145,10 @@ _build_asm_fn(uint8_t const *asmb, size_t nb)
 		goto unmap_func;
 	}
 
-	/* This is typically not necessary on x86. However, it simply serves a conceptual purpose
-	 * here. */
+	/* This is not necessary on x86. The architecture guarantees instruction cache
+	 * coherence. It simply serves a conceptual purpose here. However, this is necessary for
+	 * certain architectures that do not guarantee instruction cache coherence, such as the ARM
+	 * family. */
 	__builtin___clear_cache(ret, (char *)ret + nb);
 
 	goto cleanup;
