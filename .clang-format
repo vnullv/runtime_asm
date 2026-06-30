@@ -1,0 +1,49 @@
+---
+
+BasedOnStyle: LLVM
+
+IndentWidth: 8
+TabWidth: 8
+UseTab: ForIndentation
+
+IndentCaseLabels: false
+IndentPPDirectives: BeforeHash
+IndentAccessModifiers: false
+AccessModifierOffset: -8
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterControlStatement: false     # K&R style
+  AfterCaseLabel: false
+  AfterFunction: true
+  AfterNamespace: true
+  AfterClass: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: false
+  BeforeElse: false
+  BeforeLambdaBody: true
+  BeforeWhile: false
+BreakAfterReturnType: TopLevel
+
+ColumnLimit: 100
+
+AlignConsecutiveAssignments: AcrossComments
+AlignConsecutiveBitFields: AcrossComments
+AlignConsecutiveMacros: AcrossComments
+AlignEscapedNewlines: LeftWithLastLine
+AlignConsecutiveDeclarations: true
+AlignAfterOpenBracket: Align
+AlignOperands: true
+AlignTrailingComments: true
+QualifierAlignment: Right
+
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+BinPackArguments: false
+BinPackParameters: false
+Cpp11BracedListStyle: false
+
+...
