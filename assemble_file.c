@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <fcntl.h>
 #include <keystone/keystone.h>
 #include <stdarg.h>
@@ -11,32 +12,48 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-/* Returns NULL upon failure. Caller should unmap file after use. */
-static void *
-_map_file(char const *path, int prot, size_t *fsz)
+/* Caller should free returned string after use. Returns NULL on failure. */
+static char *
+_read_file(char const *path, size_t *fsz)
 {
 	int         fd;
-	void       *ret;
-	struct stat stat;
+	char       *ret;
+	struct stat st;
+	ssize_t     n;
+	size_t      total;
 
 	ret = NULL;
-	fd  = open(path, O_RDONLY);
-	if (fd == -1) {
-		perror("_map_file(): open()");
-		goto cleanup;
-	}
 
-	if (fstat(fd, &stat) == -1) {
-		perror("_map_file(): fstat()");
+	fd = open(path, O_RDONLY);
+	if (fd == -1)
+		goto cleanup;
+
+	if (fstat(fd, &st) == -1) {
+		perror("_read_file(): fstat()");
 		goto close_file;
 	}
-	*fsz = (size_t)stat.st_size;
 
-	ret = mmap(NULL, *fsz, prot, MAP_SHARED, fd, 0);
-	if (ret == MAP_FAILED) {
-		ret = NULL;
-		perror("_map_file(): mmap()");
+	ret = malloc(st.st_size);
+	if (!ret) {
+		perror("_read_file(): malloc()");
+		goto close_file;
 	}
+
+	for (total = 0; total < (size_t)st.st_size; total += (size_t)n) {
+		n = read(fd, ret + total, st.st_size - total);
+		if (n == 0)
+			break; /* EOF */
+
+		if (n < 0) {
+			if (errno == EINTR)
+				continue;
+
+			free(ret);
+			goto close_file;
+		}
+	}
+
+	*fsz = total;
 
 close_file:
 	close(fd);
@@ -44,7 +61,8 @@ cleanup:
 	return ret;
 }
 
-/* Caller should free the returned pointer after use. Returns NULL on failure. */
+/* 'instrs' should be a NULL-terminated string. Caller should free the returned pointer after use.
+ * Returns NULL on failure. */
 static uint8_t *
 _assemble_instrs(char const *instrs, size_t *nb)
 {
@@ -98,7 +116,7 @@ _build_asm_fn(uint8_t const *asmb, size_t nb)
 
 	ret = mmap(NULL, nb, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
 	if (ret == MAP_FAILED) {
-		perror("_run_asm(): mmap()");
+		perror("_build_asm_fn(): mmap()");
 		ret = NULL;
 		goto cleanup;
 	}
@@ -106,7 +124,7 @@ _build_asm_fn(uint8_t const *asmb, size_t nb)
 	memcpy(ret, asmb, nb);
 
 	if (mprotect(ret, nb, PROT_READ | PROT_EXEC) == -1) {
-		perror("_run_asm(): mprotect()");
+		perror("_build_asm_fn(): mprotect()");
 		goto unmap_func;
 	}
 
@@ -124,20 +142,28 @@ typedef long int (*asm_fn_t)(void);
 int
 main(void)
 {
-	void    *mapped_file;
+	char    *instrs, *tmp;
 	uint8_t *asmb;
 	size_t   fsz, asmnb;
 	int      rc;
 	asm_fn_t fn;
 
-	rc          = EXIT_FAILURE;
-	mapped_file = _map_file("asm.s", PROT_READ, &fsz);
-	if (!mapped_file)
+	rc     = EXIT_FAILURE;
+	instrs = _read_file("asm.s", &fsz);
+	if (!instrs)
 		goto cleanup;
 
-	asmb = _assemble_instrs((char const *)mapped_file, &asmnb);
+	tmp = realloc(instrs, fsz + 1);
+	if (!tmp) {
+		perror("main(): realloc()");
+		goto free_instrs;
+	}
+	instrs      = tmp;
+	instrs[fsz] = '\0';
+
+	asmb = _assemble_instrs(instrs, &asmnb);
 	if (!asmb)
-		goto unmap_file;
+		goto free_instrs;
 
 	fn = _build_asm_fn(asmb, asmnb);
 	if (!fn)
@@ -150,8 +176,8 @@ main(void)
 	munmap(fn, asmnb);
 free_asm:
 	free(asmb);
-unmap_file:
-	munmap(mapped_file, fsz);
+free_instrs:
+	free(instrs);
 cleanup:
 	return rc;
 }
