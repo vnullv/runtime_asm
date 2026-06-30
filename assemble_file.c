@@ -38,8 +38,10 @@ _read_file(char const *path, size_t *fsz)
 	ret = NULL;
 
 	fd = open(path, O_RDONLY);
-	if (fd == -1)
+	if (fd == -1) {
+		perror("_read_file(): open()");
 		goto cleanup;
+	}
 
 	if (fstat(fd, &st) == -1) {
 		perror("_read_file(): fstat()");
@@ -61,6 +63,7 @@ _read_file(char const *path, size_t *fsz)
 			if (errno == EINTR)
 				continue;
 
+			perror("_read_file(): read()");
 			free(ret);
 			ret = NULL;
 			goto close_file;
