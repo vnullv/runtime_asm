@@ -27,12 +27,12 @@
 
 /* Caller should free returned string after use. Returns NULL on failure. */
 static char *
-_read_file(char const *path, size_t *fsz)
+_read_file(char const *path, size_t *out_sz)
 {
 	int         fd;
 	char       *ret;
 	struct stat st;
-	size_t      total;
+	size_t      fsz, total;
 	ssize_t     n;
 
 	ret = NULL;
@@ -48,14 +48,16 @@ _read_file(char const *path, size_t *fsz)
 		goto close_file;
 	}
 
-	ret = malloc(st.st_size);
+	fsz = (size_t)st.st_size;
+
+	ret = malloc(fsz + 1);
 	if (!ret) {
 		perror("_read_file(): malloc()");
 		goto close_file;
 	}
 
-	for (total = 0; total < (size_t)st.st_size; total += (size_t)n) {
-		n = read(fd, ret + total, st.st_size - total);
+	for (total = 0; total < fsz; total += (size_t)n) {
+		n = read(fd, ret + total, fsz - total);
 		if (n == 0)
 			break; /* EOF */
 
@@ -70,7 +72,8 @@ _read_file(char const *path, size_t *fsz)
 		}
 	}
 
-	*fsz = total;
+	ret[total] = '\0';
+	*out_sz    = total;
 
 close_file:
 	close(fd);
@@ -165,7 +168,7 @@ typedef long int (*asm_fn_t)(void);
 int
 main(void)
 {
-	char    *instrs, *tmp;
+	char    *instrs;
 	uint8_t *asmb;
 	size_t   fsz, asmnb;
 	int      rc;
@@ -175,14 +178,6 @@ main(void)
 	instrs = _read_file("asm.s", &fsz);
 	if (!instrs)
 		goto cleanup;
-
-	tmp = realloc(instrs, fsz + 1);
-	if (!tmp) {
-		perror("main(): realloc()");
-		goto free_instrs;
-	}
-	instrs      = tmp;
-	instrs[fsz] = '\0';
 
 	asmb = _assemble_instrs(instrs, &asmnb);
 	if (!asmb || !asmnb)

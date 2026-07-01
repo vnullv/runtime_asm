@@ -1,7 +1,7 @@
 CC := gcc
 LD := gcc
 
-CFLAGS := -O2 -Wall -Wextra -std=gnu99
+CFLAGS := -O2 -Wall -Wextra -Wconversion -std=gnu99
 LIBS := -lkeystone
 
 SRC := assemble_file.c
