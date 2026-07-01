@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/file.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -27,15 +26,15 @@
 
 /* Caller should free returned string after use. Returns NULL on failure. */
 static char *
-_read_file(char const *path, size_t *out_sz)
+_read_file(char const *path)
 {
 	int         fd;
-	char       *ret;
+	char       *buf;
 	struct stat st;
 	size_t      fsz, total;
 	ssize_t     n;
 
-	ret = NULL;
+	buf = NULL;
 
 	fd = open(path, O_RDONLY);
 	if (fd == -1) {
@@ -50,14 +49,14 @@ _read_file(char const *path, size_t *out_sz)
 
 	fsz = (size_t)st.st_size;
 
-	ret = malloc(fsz + 1);
-	if (!ret) {
+	buf = malloc(fsz + 1);
+	if (!buf) {
 		perror("_read_file(): malloc()");
 		goto close_file;
 	}
 
-	for (total = 0; total < fsz; total += (size_t)n) {
-		n = read(fd, ret + total, fsz - total);
+	for (total = 0; total < fsz;) {
+		n = read(fd, buf + total, fsz - total);
 		if (n == 0)
 			break; /* EOF */
 
@@ -66,19 +65,20 @@ _read_file(char const *path, size_t *out_sz)
 				continue;
 
 			perror("_read_file(): read()");
-			free(ret);
-			ret = NULL;
+			free(buf);
+			buf = NULL;
 			goto close_file;
 		}
+
+		total += (size_t)n;
 	}
 
-	ret[total] = '\0';
-	*out_sz    = total;
+	buf[total] = '\0';
 
 close_file:
 	close(fd);
 cleanup:
-	return ret;
+	return buf;
 }
 
 /* 'instrs' should be a NULL-terminated string. Caller should free the returned pointer after use.
@@ -134,7 +134,7 @@ _build_asm_fn(uint8_t const *asmb, size_t nb)
 {
 	void *ret;
 
-	ret = mmap(NULL, nb, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+	ret = mmap(NULL, nb, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (ret == MAP_FAILED) {
 		perror("_build_asm_fn(): mmap()");
 		ret = NULL;
@@ -170,12 +170,12 @@ main(void)
 {
 	char    *instrs;
 	uint8_t *asmb;
-	size_t   fsz, asmnb;
+	size_t   asmnb;
 	int      rc;
 	asm_fn_t fn;
 
 	rc     = EXIT_FAILURE;
-	instrs = _read_file("asm.s", &fsz);
+	instrs = _read_file("asm.s");
 	if (!instrs)
 		goto cleanup;
 
