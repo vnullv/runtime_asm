@@ -1,4 +1,4 @@
-# Simple runtime x86 assembler and executor example using Keystone Engine
+# Simple runtime x86 assembler and executor example
 
 ## Usage
 Populate ```asm.s``` with your x86 code. This will then be assembled and run at runtime. If you need to pass arguments to your assembly function, modify the ```asm_fn_t``` type in ```assemble_file.c```, and then the call site, if necessary.
