@@ -39,7 +39,7 @@ _read_file(char const *path)
 	fd = open(path, O_RDONLY);
 	if (fd == -1) {
 		perror("_read_file(): open()");
-		goto cleanup;
+		return NULL;
 	}
 
 	if (fstat(fd, &st) == -1) {
@@ -77,7 +77,7 @@ _read_file(char const *path)
 
 close_file:
 	close(fd);
-cleanup:
+
 	return buf;
 }
 
@@ -137,8 +137,7 @@ _build_asm_fn(uint8_t const *asmb, size_t nb)
 	ret = mmap(NULL, nb, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (ret == MAP_FAILED) {
 		perror("_build_asm_fn(): mmap()");
-		ret = NULL;
-		goto cleanup;
+		return NULL;
 	}
 
 	memcpy(ret, asmb, nb);
@@ -154,13 +153,11 @@ _build_asm_fn(uint8_t const *asmb, size_t nb)
 	 * family. */
 	__builtin___clear_cache(ret, (char *)ret + nb);
 
-	goto cleanup;
+	return ret;
 
 unmap_func:
 	munmap(ret, nb);
-	ret = NULL;
-cleanup:
-	return ret;
+	return NULL;
 }
 
 typedef long int (*asm_fn_t)(void);
@@ -177,7 +174,7 @@ main(void)
 	rc     = EXIT_FAILURE;
 	instrs = _read_file("asm.s");
 	if (!instrs)
-		goto cleanup;
+		return EXIT_FAILURE;
 
 	asmb = _assemble_instrs(instrs, &asmnb);
 	if (!asmb || !asmnb)
@@ -196,6 +193,6 @@ free_asm:
 	free(asmb);
 free_instrs:
 	free(instrs);
-cleanup:
+
 	return rc;
 }
