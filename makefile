@@ -14,7 +14,7 @@ TARGET := assemble_file
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(LD) $(LIBS) -o $@ $<
+	$(LD) -o $@ $< $(LIBS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
